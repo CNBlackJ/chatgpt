@@ -1,7 +1,10 @@
 const express = require('express');
 const path = require('path');
+// 导入并配置dotenv
+require('dotenv').config();
+
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.CLIENT_PORT || 3000;
 
 // 提供静态文件服务
 app.use(express.static(path.join(__dirname)));
@@ -22,7 +25,8 @@ app.get('/api/status', (req, res) => {
     res.json({
         status: 'online',
         time: new Date().toISOString(),
-        message: '服务器运行正常'
+        message: '服务器运行正常',
+        wsPort: process.env.SERVER_PORT || 8080
     });
 });
 

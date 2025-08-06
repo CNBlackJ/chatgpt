@@ -304,7 +304,7 @@
         // 添加系统消息（如用户加入/离开）
         function addSystemMessage(text, className = '') {
             const messageElement = document.createElement('div');
-            messageElement.className = `text-center text-sm ${className} py-1 px-3 rounded-full bg-gray-100 dark:bg-gray-700 inline-block mx-auto`;
+            messageElement.className = `text-center text-sm ${className} py-1 px-3 rounded-full bg-gray-100 inline-block mx-auto`;
             messageElement.textContent = text;
             
             messages.appendChild(messageElement);
@@ -313,20 +313,20 @@
         // 添加聊天消息
         function addChatMessage(data) {
             const isOwnMessage = data.sender === nickname;
-            const messageClass = isOwnMessage ? 'message-out bg-primary text-white' : 'message-in bg-white dark:bg-gray-700 text-gray-900 dark:text-white';
+            const messageClass = isOwnMessage ? 'message-out bg-primary text-white' : 'message-in bg-white';
             const alignClass = isOwnMessage ? 'flex-row-reverse' : 'flex-row';
             
             const messageElement = document.createElement('div');
             messageElement.className = `flex ${alignClass} gap-3`;
             
             messageElement.innerHTML = `
-                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-sm font-medium ${isOwnMessage ? 'bg-primary/20 text-primary dark:bg-primary/30' : ''}">
+                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-medium ${isOwnMessage ? 'bg-primary/20 text-primary' : ''}">
                     ${data.sender.charAt(0).toUpperCase()}
                 </div>
                 <div class="max-w-[80%]">
                     <div class="flex items-center gap-2 mb-1">
-                        <span class="font-medium text-sm ${isOwnMessage ? 'text-primary/80' : 'text-gray-700 dark:text-gray-300'}">${data.sender}</span>
-                        <span class="text-xs text-gray-400 dark:text-gray-500">${formatTime(data.timestamp)}</span>
+                        <span class="font-medium text-sm ${isOwnMessage ? 'text-primary/80' : 'text-gray-700'}">${data.sender}</span>
+                        <span class="text-xs text-gray-400">${formatTime(data.timestamp)}</span>
                     </div>
                     <div class="${messageClass} px-4 py-2 rounded-lg shadow-sm">
                         ${escapeHtml(data.content)}

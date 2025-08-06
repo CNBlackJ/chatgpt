@@ -1,5 +1,7 @@
 const WebSocket = require('ws');
 const http = require('http');
+// 导入并配置dotenv
+require('dotenv').config();
 
 // 创建HTTP服务器
 const server = http.createServer((req, res) => {
@@ -125,7 +127,7 @@ wss.on('connection', (ws) => {
 });
 
 // 启动服务器
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.SERVER_PORT || 8080;
 server.listen(PORT, () => {
     console.log(`服务器运行在 http://0.0.0.0:${PORT}`);
     console.log(`WebSocket 服务地址: ws://localhost:${PORT}`);
