@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>局域网群聊</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    
+    <!-- Tailwind 配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#10B981',
+                        dark: '#1E293B',
+                        light: '#F8FAFC'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .message-in {
+                animation: fadeInLeft 0.3s ease forwards;
+            }
+            .message-out {
+                animation: fadeInRight 0.3s ease forwards;
+            }
+            .user-join {
+                animation: fadeIn 0.5s ease forwards;
+            }
+        }
+        
+        @keyframes fadeInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        @keyframes fadeInRight {
+            from {
+                opacity: 0;
+                transform: translateX(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen font-sans text-dark">
+    <div id="app" class="flex flex-col h-screen max-w-5xl mx-auto shadow-lg">
+        <!-- 初始界面 - 输入昵称和服务器地址 -->
+        <div id="login-screen" class="flex-1 flex flex-col items-center justify-center p-6 bg-white">
+            <div class="w-full max-w-md">
+                <div class="text-center mb-8">
+                    <i class="fa fa-comments text-5xl text-primary mb-4"></i>
+                    <h1 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-gray-800">局域网群聊</h1>
+                    <p class="text-gray-500 mt-2">设置昵称，加入聊天</p>
+                </div>
+                
+                <form id="login-form" class="space-y-4">
+                    <div>
+                        <label for="server-address" class="block text-sm font-medium text-gray-700 mb-1">服务器地址</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+                                <i class="fa fa-server"></i>
+                            </span>
+                            <input type="text" id="server-address" name="server-address" 
+                                   class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
+                                   value="ws://localhost:8080" placeholder="ws://服务器IP:端口">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label for="nickname" class="block text-sm font-medium text-gray-700 mb-1">你的昵称</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+                                <i class="fa fa-user"></i>
+                            </span>
+                            <input type="text" id="nickname" name="nickname" 
+                                   class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
+                                   placeholder="请输入昵称" required>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="w-full bg-primary hover:bg-primary/90 text-white font-medium py-3 px-4 rounded-lg transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2">
+                        <i class="fa fa-sign-in"></i>
+                        <span>加入聊天</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- 聊天界面 -->
+        <div id="chat-screen" class="hidden flex flex-col h-full bg-white">
+            <!-- 顶部导航 -->
+            <header class="bg-primary text-white p-4 shadow-md">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-2">
+                        <i class="fa fa-comments"></i>
+                        <h1 class="text-xl font-bold">局域网群聊</h1>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <span id="user-count" class="bg-white/20 px-2 py-1 rounded-full text-sm flex items-center gap-1">
+                            <i class="fa fa-users"></i>
+                            <span>0人在线</span>
+                        </span>
+                        <button id="disconnect-btn" class="hover:bg-white/20 p-2 rounded-full transition-colors">
+                            <i class="fa fa-sign-out"></i>
+                        </button>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- 消息区域 -->
+            <main id="messages-container" class="flex-1 overflow-y-auto p-4 bg-gray-50">
+                <div id="messages" class="space-y-4">
+                    <!-- 消息会动态添加到这里 -->
+                </div>
+            </main>
+            
+            <!-- 输入区域 -->
+            <footer class="border-t p-4 bg-white">
+                <form id="message-form" class="flex gap-2">
+                    <input type="text" id="message-input" placeholder="输入消息..." 
+                           class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none">
+                    <button type="submit" class="bg-primary hover:bg-primary/90 text-white p-3 rounded-lg transition-all">
+                        <i class="fa fa-paper-plane"></i>
+                    </button>
+                </form>
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let ws;
+        let nickname = '';
+        let serverAddress = '';
+        
+        // DOM 元素
+        const loginScreen = document.getElementById('login-screen');
+        const chatScreen = document.getElementById('chat-screen');
+        const loginForm = document.getElementById('login-form');
+        const messageForm = document.getElementById('message-form');
+        const messagesContainer = document.getElementById('messages-container');
+        const messages = document.getElementById('messages');
+        const userCount = document.getElementById('user-count').querySelector('span');
+        const disconnectBtn = document.getElementById('disconnect-btn');
+        
+        // 登录表单提交
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            // 获取表单数据
+            nickname = document.getElementById('nickname').value.trim();
+            serverAddress = document.getElementById('server-address').value.trim();
+            
+            if (!nickname) {
+                alert('请输入昵称');
+                return;
+            }
+            
+            if (!serverAddress) {
+                alert('请输入服务器地址');
+                return;
+            }
+            
+            // 连接到WebSocket服务器
+            connectToServer();
+        });
+        
+        // 消息表单提交
+        messageForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const input = document.getElementById('message-input');
+            const message = input.value.trim();
+            
+            if (message && ws && ws.readyState === WebSocket.OPEN) {
+                // 发送消息
+                ws.send(JSON.stringify({
+                    type: 'message',
+                    content: message,
+                    sender: nickname,
+                    timestamp: new Date().toISOString()
+                }));
+                
+                // 清空输入框
+                input.value = '';
+                input.focus();
+            }
+        });
+        
+        // 断开连接按钮
+        disconnectBtn.addEventListener('click', () => {
+            if (ws) {
+                ws.close(1000, '用户主动断开连接');
+            }
+            showLoginScreen();
+        });
+        
+        // 连接到WebSocket服务器
+        function connectToServer() {
+            try {
+                // 创建WebSocket连接
+                ws = new WebSocket(serverAddress);
+                
+                // 连接成功
+                ws.onopen = () => {
+                    console.log('连接成功');
+                    
+                    // 发送加入通知
+                    ws.send(JSON.stringify({
+                        type: 'join',
+                        sender: nickname,
+                        timestamp: new Date().toISOString()
+                    }));
+                    
+                    // 显示聊天界面
+                    showChatScreen();
+                    
+                    // 聚焦到消息输入框
+                    document.getElementById('message-input').focus();
+                };
+                
+                // 接收消息
+                ws.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    handleMessage(data);
+                };
+                
+                // 连接关闭
+                ws.onclose = (event) => {
+                    console.log('连接关闭:', event.reason);
+                    
+                    if (event.code !== 1000) { // 不是正常关闭
+                        showLoginScreen();
+                        alert('与服务器的连接已断开，请重新连接');
+                    }
+                };
+                
+                // 连接错误
+                ws.onerror = (error) => {
+                    console.error('连接错误:', error);
+                    alert('无法连接到服务器，请检查地址是否正确');
+                };
+            } catch (error) {
+                console.error('连接失败:', error);
+                alert('连接失败，请检查服务器地址');
+            }
+        }
+        
+        // 处理接收到的消息
+        function handleMessage(data) {
+            switch (data.type) {
+                case 'join':
+                    addSystemMessage(`${data.sender} 加入了聊天`, 'user-join text-green-600');
+                    updateUserCount(data.userCount);
+                    break;
+                case 'leave':
+                    addSystemMessage(`${data.sender} 离开了聊天`, 'user-join text-red-600');
+                    updateUserCount(data.userCount);
+                    break;
+                case 'message':
+                    addChatMessage(data);
+                    break;
+                case 'userCount':
+                    updateUserCount(data.count);
+                    break;
+            }
+            
+            // 滚动到底部
+            scrollToBottom();
+        }
+        
+        // 添加系统消息（如用户加入/离开）
+        function addSystemMessage(text, className = '') {
+            const messageElement = document.createElement('div');
+            messageElement.className = `text-center text-sm ${className} py-1 px-3 rounded-full bg-gray-100 dark:bg-gray-700 inline-block mx-auto`;
+            messageElement.textContent = text;
+            
+            messages.appendChild(messageElement);
+        }
+        
+        // 添加聊天消息
+        function addChatMessage(data) {
+            const isOwnMessage = data.sender === nickname;
+            const messageClass = isOwnMessage ? 'message-out bg-primary text-white' : 'message-in bg-white dark:bg-gray-700 text-gray-900 dark:text-white';
+            const alignClass = isOwnMessage ? 'flex-row-reverse' : 'flex-row';
+            
+            const messageElement = document.createElement('div');
+            messageElement.className = `flex ${alignClass} gap-3`;
+            
+            messageElement.innerHTML = `
+                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-sm font-medium ${isOwnMessage ? 'bg-primary/20 text-primary dark:bg-primary/30' : ''}">
+                    ${data.sender.charAt(0).toUpperCase()}
+                </div>
+                <div class="max-w-[80%]">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="font-medium text-sm ${isOwnMessage ? 'text-primary/80' : 'text-gray-700 dark:text-gray-300'}">${data.sender}</span>
+                        <span class="text-xs text-gray-400 dark:text-gray-500">${formatTime(data.timestamp)}</span>
+                    </div>
+                    <div class="${messageClass} px-4 py-2 rounded-lg shadow-sm">
+                        ${escapeHtml(data.content)}
+                    </div>
+                </div>
+            `;
+            
+            messages.appendChild(messageElement);
+        }
+        
+        // 更新在线用户数量
+        function updateUserCount(count) {
+            userCount.textContent = `${count}人在线`;
+        }
+        
+        // 显示登录界面
+        function showLoginScreen() {
+            loginScreen.classList.remove('hidden');
+            chatScreen.classList.add('hidden');
+            messages.innerHTML = ''; // 清空消息
+        }
+        
+        // 显示聊天界面
+        function showChatScreen() {
+            loginScreen.classList.add('hidden');
+            chatScreen.classList.remove('hidden');
+        }
+        
+        // 滚动到底部
+        function scrollToBottom() {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+        
+        // 格式化时间
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+        
+        // 转义HTML，防止XSS攻击
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+        
+        // 处理窗口关闭事件
+        window.addEventListener('beforeunload', () => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'leave',
+                    sender: nickname,
+                    timestamp: new Date().toISOString()
+                }));
+                // 给服务器一点时间处理离开事件
+                ws.close(1000, '窗口关闭');
+            }
+        });
+    </script>
+</body>
+</html>
